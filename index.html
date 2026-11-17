@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Explorez les stations de ski françaises sur une carte interactive : massifs, altitudes, pistes, enneigement, météo et webcams." />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="author" content="Stéphane MARIN" />
+  <meta name="theme-color" content="#0b2540" />
+  <link rel="canonical" href="https://skifrance-smarin.netlify.app/" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/favicon.svg" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://api.skiradar.fr" crossorigin />
+  <link rel="preconnect" href="https://unpkg.com" crossorigin />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <title>Ski France : carte des stations, neige, météo et webcams</title>
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Ski France" />
+  <meta property="og:title" content="Ski France – Carte interactive des stations françaises" />
+  <meta property="og:description" content="Comparez les stations de ski françaises : massifs, altitudes, domaines skiables, enneigement, météo et webcams." />
+  <meta property="og:url" content="https://skifrance-smarin.netlify.app/" />
+  <meta property="og:image" content="https://skifrance-smarin.netlify.app/og-image.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Ski France, carte interactive des stations de ski françaises" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ski France – Carte interactive des stations françaises" />
+  <meta name="twitter:description" content="Explorez les stations de ski françaises, la neige, la météo, les pistes et les webcams." />
+  <meta name="twitter:image" content="https://skifrance-smarin.netlify.app/og-image.svg" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "Ski France",
+    "url": "https://skifrance-smarin.netlify.app/",
+    "inLanguage": "fr-FR",
+    "description": "Carte interactive des stations de ski françaises avec informations sur les massifs, altitudes, domaines skiables, enneigement, météo et webcams.",
+    "creator": { "@type": "Person", "name": "Stéphane MARIN" },
+    "publisher": { "@type": "Organization", "name": "Ski France", "url": "https://skifrance-smarin.netlify.app/" }
+  }
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8f9fb;
+      --card: #ffffff;
+      --text: #1a1a1a;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --accent: #0ea5e9;
+      --dark: #111827;
+      --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.04);
+    }
+    [data-theme="dark"] {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #2d3340;
+      --accent: #38bdf8;
+      --dark: #f9fafb;
+      --shadow: 0 1px 3px rgba(0,0,0,.3), 0 4px 12px rgba(0,0,0,.2);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; height: auto;
+      overflow-x: hidden; overflow-y: auto; transition: background .2s, color .2s;
+    }
+    header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0.65rem 1.1rem; display: flex; align-items: center;
+      justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; z-index: 1000; position: relative;
+    }
+    .logo { font-weight: 700; font-size: 1.2rem; color: var(--dark); }
+    .logo span { color: var(--accent); }
+    .controls { display: flex; flex-wrap: wrap; gap: 0.45rem; align-items: center; }
+    .btn-group {
+      display: flex; background: var(--bg); border-radius: 8px; padding: 3px;
+      border: 1px solid var(--border);
+    }
+    .btn-group button {
+      border: none; background: transparent; padding: 0.35rem 0.75rem;
+      border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; color: var(--muted);
+    }
+    .btn-group button.active { background: var(--card); color: var(--dark); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+    select, .search-input, .icon-btn {
+      border: 1px solid var(--border); border-radius: 8px; padding: 0.35rem 0.7rem;
+      font-size: 0.82rem; background: var(--card); color: var(--text); outline: none;
+    }
+    .search-input { min-width: 150px; }
+    .icon-btn { cursor: pointer; display: inline-flex; align-items: center; gap: 0.3rem; }
+    .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .toggle { display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; color: var(--muted); cursor: pointer; }
+    .toggle input { accent-color: var(--accent); }
+    main { display: flex; height: min(76vh, 900px); min-height: 540px; position: relative; }
+    .seo-intro { padding: 0.9rem 1.1rem 0.8rem; background: var(--card); border-bottom: 1px solid var(--border); }
+    .seo-intro-inner, .seo-content-inner { max-width: 1240px; margin: 0 auto; }
+    .seo-intro h1 { font-size: clamp(1.15rem, 2.2vw, 1.65rem); line-height: 1.25; margin-bottom: 0.25rem; color: var(--dark); }
+    .seo-intro p { font-size: 0.9rem; line-height: 1.5; color: var(--muted); max-width: 1000px; }
+    .seo-content { padding: 2rem 1.1rem 3rem; background: var(--bg); border-top: 1px solid var(--border); }
+    .seo-content h2 { color: var(--dark); font-size: 1.25rem; margin: 1.35rem 0 0.5rem; }
+    .seo-content p { color: var(--muted); line-height: 1.65; margin: 0.45rem 0; max-width: 1000px; }
+    .seo-station-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 0.5rem 1.2rem; margin-top: 0.8rem; }
+    .seo-station-group { margin: 0.9rem 0 1.2rem; }
+    .seo-station-group h3 { font-size: 0.95rem; margin-bottom: 0.45rem; color: var(--dark); }
+    .seo-station-grid a { color: var(--accent); text-decoration: none; font-size: 0.86rem; padding: 0.12rem 0; }
+    .seo-station-grid a:hover { text-decoration: underline; }
+    .seo-note { font-size: 0.78rem !important; }
+    #map { flex: 1; height: 100%; z-index: 1; }
+    #list-panel {
+      width: 380px; max-width: 100%; background: var(--card); border-left: 1px solid var(--border);
+      display: none; flex-direction: column; overflow: hidden; z-index: 10;
+    }
+    #list-panel.visible { display: flex; }
+    .list-header {
+      padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.82rem;
+      color: var(--muted); display: flex; justify-content: space-between;
+    }
+    #station-list { overflow-y: auto; flex: 1; }
+    .station-card {
+      padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); cursor: pointer;
+    }
+    .station-card:hover, .station-card.selected { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+    .station-card h3 { font-size: 0.92rem; font-weight: 600; margin-bottom: 0.15rem; }
+    .station-meta { font-size: 0.78rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .badge { display: inline-block; padding: 0.12rem 0.4rem; border-radius: 999px; font-size: 0.68rem; font-weight: 600; }
+    .badge.high { background: #dbeafe; color: #1d4ed8; }
+    .badge.mid { background: #fef3c7; color: #b45309; }
+    .badge.low { background: #f3f4f6; color: #4b5563; }
+    [data-theme="dark"] .badge.high { background: #1e3a5f; color: #93c5fd; }
+    [data-theme="dark"] .badge.mid { background: #422006; color: #fcd34d; }
+    [data-theme="dark"] .badge.low { background: #374151; color: #d1d5db; }
+    #detail-panel {
+      position: absolute; top: 0; right: 0; width: 420px; max-width: 100%; height: 100%;
+      background: var(--card); border-left: 1px solid var(--border); box-shadow: -4px 0 24px rgba(0,0,0,.12);
+      transform: translateX(100%); transition: transform .25s ease; z-index: 20;
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    #detail-panel.open { transform: translateX(0); }
+    .detail-header {
+      padding: 1rem 1.15rem; border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+    }
+    .detail-header h2 { font-size: 1.2rem; font-weight: 700; }
+    .close-btn {
+      background: var(--bg); border: 1px solid var(--border); width: 32px; height: 32px;
+      border-radius: 8px; cursor: pointer; font-size: 1.1rem; color: var(--muted);
+    }
+    .detail-body { padding: 1.15rem; overflow-y: auto; flex: 1; }
+    .section { margin-bottom: 1.4rem; }
+    .section h3 {
+      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted); margin-bottom: 0.55rem; font-weight: 600;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
+    .stat {
+      background: var(--bg); border-radius: 8px; padding: 0.65rem 0.8rem; border: 1px solid var(--border);
+    }
+    .stat-label { font-size: 0.68rem; color: var(--muted); margin-bottom: 0.12rem; }
+    .stat-value { font-size: 1.02rem; font-weight: 600; }
+    .links { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.4rem; }
+    .links a {
+      display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.38rem 0.7rem;
+      background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent);
+      border-radius: 8px; text-decoration: none; font-size: 0.78rem; font-weight: 500;
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    }
+    .piste-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 0.35rem; background: var(--border); }
+    .piste-bar .v { background: #22c55e; } .piste-bar .b { background: #3b82f6; }
+    .piste-bar .r { background: #ef4444; } .piste-bar .n { background: #1f2937; }
+    .chart-wrap { position: relative; height: 160px; margin-top: 0.5rem; }
+    .legend {
+      position: fixed; bottom: 18px; left: 18px; background: var(--card); padding: 0.55rem 0.8rem;
+      border-radius: 8px; box-shadow: var(--shadow); font-size: 0.72rem; z-index: 5;
+      display: flex; flex-direction: column; gap: 0.25rem; border: 1px solid var(--border);
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--card); box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+    #loading {
+      position: absolute; inset: 0; background: color-mix(in srgb, var(--bg) 90%, transparent);
+      display: flex; align-items: center; justify-content: center; z-index: 50; color: var(--muted);
+    }
+    #loading.hidden { display: none; }
+    @media (max-width: 768px) {
+      #list-panel { width: 100%; position: absolute; inset: 0; z-index: 15; }
+      #detail-panel { width: 100%; }
+    }
+    .custom-marker { background: transparent; border: none; }
+  
+    .leaflet-tooltip.station-tooltip {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.4rem 0.65rem;
+      font-size: 0.8rem;
+      box-shadow: var(--shadow);
+    }
+    .leaflet-tooltip-top.station-tooltip::before {
+      border-top-color: var(--border);
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">ski<span>france</span>
+      <span style="font-size:0.65rem;font-weight:500;color:var(--muted);margin-left:0.5rem;letter-spacing:0">by Stéphane MARIN développement</span>
+    </div>
+    <div class="controls">
+      <div class="btn-group" id="view-toggle">
+        <button class="active" data-view="map">Carte</button>
+        <button data-view="list">Liste</button>
+      </div>
+      <select id="massif-filter">
+        <option value="">Tous les massifs</option>
+        <option value="alpes-du-nord">Alpes du Nord</option>
+        <option value="alpes-du-sud">Alpes du Sud</option>
+        <option value="pyrenees">Pyrénées</option>
+        <option value="massif-central">Massif Central</option>
+        <option value="jura">Jura</option>
+        <option value="vosges">Vosges</option>
+        <option value="corse">Corse</option>
+      </select>
+      <select id="alt-filter">
+        <option value="">Toutes altitudes</option>
+        <option value="low">Plaine (&lt; 1200 m)</option>
+        <option value="mid">Moyenne (1200–1800 m)</option>
+        <option value="high">Haute montagne (&gt; 1800 m)</option>
+      </select>
+      <input type="text" class="search-input" id="search" placeholder="Rechercher…" />
+      <label class="toggle"><input type="checkbox" id="near-me" /> Près de moi</label>
+      <button class="icon-btn" id="export-csv" title="Exporter CSV">↓ CSV</button>
+      <button class="icon-btn" id="theme-toggle" title="Mode sombre">◐</button>
+    </div>
+  </header>
+  <section class="seo-intro" aria-labelledby="page-title">
+    <div class="seo-intro-inner">
+      <h1 id="page-title">Stations de ski en France : carte interactive, neige, météo et webcams</h1>
+      <p>Explorez les stations des Alpes, des Pyrénées, du Jura, des Vosges, du Massif central et de Corse. Repérez les domaines skiables, comparez les altitudes et consultez les informations disponibles sur les pistes, l’enneigement, les prévisions météo et les webcams.</p>
+    </div>
+  </section>
+  <main aria-label="Carte interactive des stations de ski françaises">
+    <div id="map"></div>
+    <div id="list-panel">
+      <div class="list-header">
+        <span id="list-count">0 stations</span>
+        <span>Tri : altitude ↓</span>
+      </div>
+      <div id="station-list"></div>
+    </div>
+    <div id="detail-panel">
+      <div class="detail-header">
+        <div>
+          <h2 id="detail-name">—</h2>
+          <div id="detail-subtitle" style="font-size:0.82rem;color:var(--muted);margin-top:0.15rem"></div>
+        </div>
+        <button class="close-btn" id="close-detail">×</button>
+      </div>
+      <div class="detail-body" id="detail-body"></div>
+    </div>
+    <div id="loading">Chargement des 315 stations françaises…</div>
+  </main>
+  <div class="legend" id="legend">
+    <div class="legend-item"><div class="dot" style="background:#1d4ed8"></div> Haute montagne (&gt;1800 m)</div>
+    <div class="legend-item"><div class="dot" style="background:#f59e0b"></div> Moyenne (1200–1800 m)</div>
+    <div class="legend-item"><div class="dot" style="background:#9ca3af"></div> Plaine (&lt;1200 m)</div>
+  </div>
+  <section class="seo-content" aria-labelledby="seo-section-title">
+    <div class="seo-content-inner">
+      <h2 id="seo-section-title">Préparez votre prochaine sortie au ski</h2>
+      <p>Ski France rassemble sur une carte interactive les stations de ski réparties dans les massifs français. Recherchez une station par son nom, sa commune ou son domaine skiable, puis filtrez les résultats par massif et par altitude.</p>
+      <p>Chaque fiche disponible peut présenter les altitudes du village et du sommet, les caractéristiques du domaine skiable, les remontées et pistes, les bulletins d’enneigement, des liens vers les webcams et les informations météorologiques. Les données dépendent des publications des sources référencées et peuvent ne pas être disponibles pour toutes les stations.</p>
+      <h2>Stations de ski par massif</h2>
+      <p>Accédez directement aux fiches des stations, ou utilisez la carte pour explorer les Alpes du Nord, les Alpes du Sud, les Pyrénées, le Massif central, le Jura, les Vosges et la Corse.</p>
+      <div id="seo-station-links"><p>La liste des fiches de stations sera actualisée lors de la génération du site. Vous pouvez déjà utiliser la carte interactive ci-dessus.</p></div>
+      <p class="seo-note">Informations fournies à titre indicatif. Vérifiez toujours les conditions, ouvertures et consignes directement auprès de la station avant votre départ.</p>
+      <p class="seo-note">Ski France · Développement : Stéphane MARIN.</p>
+    </div>
+  </section>
+  <script>
+    let allStations = [], filtered = [], markers = {}, map, tileLayer, userMarker = null, selectedId = null, snowChart = null;
+
+    function initTheme() {
+      const saved = localStorage.getItem('skifrance-theme') || 'light';
+      document.documentElement.setAttribute('data-theme', saved);
+      updateMapTiles(saved);
+    }
+    function toggleTheme() {
+      const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('skifrance-theme', next);
+      updateMapTiles(next);
+    }
+    function updateMapTiles(theme) {
+      if (!map) return;
+      if (tileLayer) map.removeLayer(tileLayer);
+      // Esri World Topo — gratuit, pas de clé API pour usage raisonnable
+      tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, USGS, NOAA',
+        maxZoom: 19
+      }).addTo(map);
+    }
+
+    map = L.map('map', { zoomControl: false }).setView([45.5, 5.5], 7);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    initTheme();
+
+    function getAltitudeCategory(alt) {
+      if (alt == null) return 'low';
+      if (alt > 1800) return 'high';
+      if (alt >= 1200) return 'mid';
+      return 'low';
+    }
+    function getMarkerColor(cat) {
+      return { high: '#1d4ed8', mid: '#f59e0b', low: '#9ca3af' }[cat] || '#9ca3af';
+    }
+    function massifLabel(m) {
+      return { 'alpes-du-nord': 'Alpes du Nord', 'alpes-du-sud': 'Alpes du Sud', 'pyrenees': 'Pyrénées',
+        'massif-central': 'Massif Central', 'jura': 'Jura', 'vosges': 'Vosges', 'corse': 'Corse' }[m] || m;
+    }
+
+    async function loadStations() {
+      try {
+        const res = await fetch('https://api.skiradar.fr/api/v1/geo-feed?niche=montagne&limit=500');
+        if (!res.ok) throw new Error(`API stations indisponible (${res.status})`);
+        const data = await res.json();
+        if (!Array.isArray(data.stations)) throw new Error('Format de données stations inattendu');
+        allStations = data.stations.map(s => {
+          const village = s.altitudes?.village ?? s.altitudes?.bas ?? null;
+          return { ...s, _village: village, _sommet: s.altitudes?.sommet ?? null, _cat: getAltitudeCategory(village ?? s.altitudes?.sommet) };
+        });
+        applyFilters();
+        document.getElementById('loading').classList.add('hidden');
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Les données des stations sont temporairement indisponibles. Réessayez dans quelques instants.';
+      }
+    }
+
+    function applyFilters() {
+      const massif = document.getElementById('massif-filter').value;
+      const alt = document.getElementById('alt-filter').value;
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      filtered = allStations.filter(s => {
+        if (massif && s.massif !== massif) return false;
+        if (alt && s._cat !== alt) return false;
+        if (q && !(`${s.name} ${s.commune || ''} ${s.domaine || ''}`.toLowerCase().includes(q))) return false;
+        return true;
+      });
+      filtered.sort((a, b) => (b._village ?? 0) - (a._village ?? 0));
+      renderMarkers(); renderList();
+      document.getElementById('list-count').textContent = `${filtered.length} station${filtered.length > 1 ? 's' : ''}`;
+    }
+
+    function renderMarkers() {
+      Object.values(markers).forEach(m => map.removeLayer(m));
+      markers = {};
+      filtered.forEach(s => {
+        if (!s.geo?.lat) return;
+        const color = getMarkerColor(s._cat);
+        const hasLive = s.neige && (s.neige.basCm != null || s.neige.hautCm != null);
+        const icon = L.divIcon({
+          className: 'custom-marker',
+          html: `<div style="width:13px;height:13px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.35)"></div>`,
+          iconSize: [13, 13], iconAnchor: [6.5, 6.5]
+        });
+        let tip = `<strong>${s.name}</strong>`;
+        if (s._village != null) tip += `<br>${s._village} m`;
+        if (hasLive) {
+          const bas = s.neige.basCm != null ? s.neige.basCm + ' cm' : '—';
+          const haut = s.neige.hautCm != null ? s.neige.hautCm + ' cm' : '—';
+          tip += `<br>Neige live : ${bas} → ${haut}`;
+          if (s.neige.statut) tip += ` (${s.neige.statut})`;
+        }
+        markers[s.id] = L.marker([s.geo.lat, s.geo.lng], { icon })
+          .addTo(map)
+          .bindTooltip(tip, { direction: 'top', offset: [0, -8], opacity: 0.95, className: 'station-tooltip' })
+          .on('click', () => openDetail(s.id));
+      });
+    }
+
+    function renderList() {
+      const container = document.getElementById('station-list');
+      container.innerHTML = filtered.map(s => `
+        <div class="station-card ${selectedId === s.id ? 'selected' : ''}" data-id="${s.id}">
+          <h3>${s.name}</h3>
+          <div class="station-meta">
+            <span class="badge ${s._cat}">${{high:'Haute',mid:'Moyenne',low:'Plaine'}[s._cat]}</span>
+            <span>${s._village != null ? s._village + ' m' : '—'}</span>
+            <span>${massifLabel(s.massif)}</span>
+            ${s.pistes?.km ? `<span>${s.pistes.km} km</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+      container.querySelectorAll('.station-card').forEach(el => el.addEventListener('click', () => openDetail(el.dataset.id)));
+    }
+
+    
+    // ========== Météo Open-Meteo ==========
+    const WMO = {
+      0: 'Soleil', 1: 'Principalement clair', 2: 'Partiellement nuageux', 3: 'Couvert',
+      45: 'Brouillard', 48: 'Brouillard givrant',
+      51: 'Bruine légère', 53: 'Bruine', 55: 'Bruine dense',
+      61: 'Pluie légère', 63: 'Pluie', 65: 'Pluie forte',
+      66: 'Pluie verglaçante', 67: 'Pluie verglaçante forte',
+      71: 'Neige légère', 73: 'Neige', 75: 'Neige forte',
+      77: 'Grains de neige', 80: 'Averses légères', 81: 'Averses', 82: 'Averses fortes',
+      85: 'Averses de neige', 86: 'Averses de neige fortes',
+      95: 'Orage', 96: 'Orage + grêle', 99: 'Orage + grêle forte'
+    };
+    function weatherIcon(code) {
+      if (code === 0 || code === 1) return '☀️';
+      if (code === 2) return '⛅';
+      if (code === 3) return '☁️';
+      if (code >= 45 && code <= 48) return '🌫️';
+      if (code >= 51 && code <= 67) return '🌧️';
+      if (code >= 71 && code <= 77) return '🌨️';
+      if (code >= 80 && code <= 82) return '🌦️';
+      if (code >= 85 && code <= 86) return '❄️';
+      if (code >= 95) return '⛈️';
+      return '🌡️';
+    }
+    
+    async function fetchWebcams(stationId) {
+      try {
+        // Récupère la page webcams SkiRadar via proxy CORS
+        const pageUrl = `https://skiradar.fr/stations/${stationId}/webcams`;
+        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(pageUrl)}`;
+        const res = await fetch(proxy);
+        if (!res.ok) throw new Error('webcam page fail');
+        const text = await res.text();
+        // Parse les liens opérateurs (Skaping, Roundshot, etc.)
+        const cams = [];
+        const seen = new Set();
+        // Matches: href="https://www.skaping.com/..." or similar
+        const re = /href="(https?:\/\/(?:www\.)?(?:skaping\.com|[^"]*roundshot\.com|webcam-hd\.com|viewsurf\.com|panomax\.com|vision-environnement\.com|ipcamlive\.com|neos360\.com|livecam360\.com|camstreamer\.com|feratel\.com|windy\.com|lumiplan\.pro)[^"]*)"/gi;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          const url = m[1];
+          if (seen.has(url)) continue;
+          seen.add(url);
+          // Try to get a name near the link
+          const idx = m.index;
+          const slice = text.slice(Math.max(0, idx - 200), idx + 100);
+          let name = '';
+          const nameMatch = slice.match(/<strong>([^<]{2,60})<\/strong>/i) || slice.match(/\*\*([^*]{2,60})\*\*/);
+          if (nameMatch) name = nameMatch[1].trim();
+          if (!name) {
+            // last path segment
+            try {
+              const u = new URL(url);
+              name = decodeURIComponent(u.pathname.split('/').filter(Boolean).pop() || 'Webcam').replace(/[-_]/g, ' ');
+              name = name.charAt(0).toUpperCase() + name.slice(1);
+            } catch { name = 'Webcam'; }
+          }
+          cams.push({ name, url });
+        }
+        return cams.slice(0, 12); // max 12
+      } catch (e) {
+        console.warn('Webcams fetch failed', e);
+        return [];
+      }
+    }
+
+    async function fetchWeather(lat, lng) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,snowfall,snow_depth&daily=temperature_2m_max,temperature_2m_min,snowfall_sum,precipitation_sum,weather_code&timezone=Europe/Paris&forecast_days=3`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('meteo fail');
+        return await res.json();
+      } catch (e) {
+        console.warn('Météo indisponible', e);
+        return null;
+      }
+    }
+
+    async function openDetail(id) {
+      const s = allStations.find(st => st.id === id);
+      if (!s) return;
+      selectedId = id; renderList();
+      document.getElementById('detail-name').textContent = s.name;
+      document.getElementById('detail-subtitle').textContent = `${s.commune || ''} · ${massifLabel(s.massif)}${s.domaine ? ' · ' + s.domaine : ''}`;
+
+      const a = s.altitudes || {}, p = s.pistes || {}, n = s.neigeObservee || {}, f = s.forfaits || {}, e = s.ecoleDeSki || {}, act = s.activites || {};
+      // Placeholder météo pendant le chargement
+      let meteoHtml = `<div class="section" id="meteo-section"><h3>Météo & température</h3><p style="font-size:0.85rem;color:var(--muted)">Chargement de la météo…</p></div>`;
+      let pisteHtml = '';
+      const total = (p.vertes||0) + (p.bleues||0) + (p.rouges||0) + (p.noires||0);
+      if (total > 0) {
+        pisteHtml = `<div class="piste-bar">
+          <span class="v" style="width:${(p.vertes||0)/total*100}%"></span>
+          <span class="b" style="width:${(p.bleues||0)/total*100}%"></span>
+          <span class="r" style="width:${(p.rouges||0)/total*100}%"></span>
+          <span class="n" style="width:${(p.noires||0)/total*100}%"></span>
+        </div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:0.25rem">${p.vertes||0} vertes · ${p.bleues||0} bleues · ${p.rouges||0} rouges · ${p.noires||0} noires</div>`;
+      }
+
+      const skiDays = n.joursSkiablesMoyen || 0;
+      const chartId = 'snow-chart-' + s.id;
+
+      document.getElementById('detail-body').innerHTML = `
+        ${meteoHtml}
+        <div class="section"><h3>Altitudes</h3>
+          <div class="grid-2">
+            <div class="stat"><div class="stat-label">Village</div><div class="stat-value">${a.village != null ? a.village + ' m' : '—'}</div></div>
+            <div class="stat"><div class="stat-label">Sommet</div><div class="stat-value">${a.sommet != null ? a.sommet + ' m' : '—'}</div></div>
+            <div class="stat"><div class="stat-label">Bas de domaine</div><div class="stat-value">${a.bas != null ? a.bas + ' m' : '—'}</div></div>
+            <div class="stat"><div class="stat-label">Catégorie</div><div class="stat-value">${{high:'Haute montagne',mid:'Moyenne',low:'Plaine'}[s._cat]}</div></div>
+          </div>
+        </div>
+        <div class="section"><h3>Domaine skiable</h3>
+          <div class="grid-2">
+            <div class="stat"><div class="stat-label">Kilomètres de pistes</div><div class="stat-value">${p.km != null ? p.km + ' km' : (p.kmDomaineRelie ? p.kmDomaineRelie + ' km (domaine)' : '—')}</div></div>
+            <div class="stat"><div class="stat-label">Remontées</div><div class="stat-value">${p.remontees != null ? p.remontees : '—'}</div></div>
+          </div>
+          ${pisteHtml}
+          ${p.domaineRelie ? `<div style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)">Domaine relié : <strong>${p.domaineRelie}</strong></div>` : ''}
+          <div class="links" style="margin-top:0.65rem">
+            ${s.planPistes?.url ? `<a href="${s.planPistes.url}" target="_blank" rel="noopener">🗺️ Plan des pistes${s.planPistes.format ? ' (' + s.planPistes.format.toUpperCase() + ')' : ''} →</a>` : ''}
+            ${s.planPistes?.pageUrl && s.planPistes?.pageUrl !== s.planPistes?.url ? `<a href="${s.planPistes.pageUrl}" target="_blank" rel="noopener">Page plan des pistes →</a>` : ''}
+            ${!s.planPistes?.url ? `<a href="https://skiradar.fr/stations/${s.id}/domaine" target="_blank" rel="noopener">🗺️ Domaine & plan (SkiRadar) →</a>` : ''}
+          </div>
+          ${s.planPistes?.fichierModifieLe ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:0.3rem">Plan relevé / modifié : ${s.planPistes.fichierModifieLe}${s.planPistes.editeur ? ' · ' + s.planPistes.editeur : ''}</div>` : ''}
+        </div>
+
+        <div class="section">
+          <h3>Ouverture des remontées & pistes</h3>
+          ${s.neige && (s.neige.remonteesOuvertes != null || s.neige.pistesOuvertes != null || s.neige.statut) ? `
+            <div class="grid-2">
+              <div class="stat">
+                <div class="stat-label">Remontées ouvertes</div>
+                <div class="stat-value">${s.neige.remonteesOuvertes != null ? s.neige.remonteesOuvertes : '—'}${s.neige.remonteesTotal != null ? ' / ' + s.neige.remonteesTotal : ''}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Pistes ouvertes</div>
+                <div class="stat-value">${s.neige.pistesOuvertes != null ? s.neige.pistesOuvertes : '—'}${s.neige.pistesTotal != null ? ' / ' + s.neige.pistesTotal : ''}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Statut domaine</div>
+                <div class="stat-value" style="text-transform:capitalize">${s.neige.statut || '—'}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Bulletin relevé le</div>
+                <div class="stat-value" style="font-size:0.85rem">${s.neige.releveLe ? new Date(s.neige.releveLe).toLocaleString('fr-FR') : '—'}</div>
+              </div>
+            </div>
+            <div class="links" style="margin-top:0.6rem">
+              ${s.neige.sourceUrl ? `<a href="${s.neige.sourceUrl}" target="_blank" rel="noopener">📋 Tableau détaillé ouvertures (bulletin) →</a>` : ''}
+              <a href="https://skiradar.fr/stations/${s.id}/enneigement" target="_blank" rel="noopener">Enneigement SkiRadar →</a>
+            </div>
+            <p style="font-size:0.72rem;color:var(--muted);margin-top:0.4rem">Le détail piste par piste / remontée par remontée est sur le bulletin de la station (lien ci-dessus). L’API open data ne publie que les totaux.</p>
+          ` : `
+            <p style="font-size:0.88rem;color:var(--muted)">Pas de bulletin d’ouverture en live pour le moment (hors saison ou non publié).</p>
+            <div class="links" style="margin-top:0.5rem">
+              <a href="https://skiradar.fr/stations/${s.id}/enneigement" target="_blank" rel="noopener">Voir l’enneigement & ouverture →</a>
+              ${s.siteOfficiel ? `<a href="${s.siteOfficiel}" target="_blank" rel="noopener">Site de la station →</a>` : ''}
+            </div>
+          `}
+        </div>
+
+        ${s.neige && (s.neige.basCm != null || s.neige.hautCm != null || s.neige.statut) ? `
+        <div class="section"><h3>Neige en live (bulletin station)</h3>
+          <div class="grid-2">
+            <div class="stat">
+              <div class="stat-label">Bas de domaine</div>
+              <div class="stat-value">${s.neige.basCm != null ? s.neige.basCm + ' cm' : '—'}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Haut de domaine</div>
+              <div class="stat-value">${s.neige.hautCm != null ? s.neige.hautCm + ' cm' : '—'}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Statut</div>
+              <div class="stat-value" style="text-transform:capitalize">${s.neige.statut || '—'}</div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Relevé le</div>
+              <div class="stat-value" style="font-size:0.85rem">${s.neige.releveLe ? new Date(s.neige.releveLe).toLocaleString('fr-FR') : '—'}</div>
+            </div>
+          </div>
+          ${s.neige.remonteesOuvertes != null ? `<div style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)">Remontées ouvertes : ${s.neige.remonteesOuvertes}${s.neige.remonteesTotal != null ? ' / ' + s.neige.remonteesTotal : ''}</div>` : ''}
+          ${s.neige.sourceUrl ? `<div class="links" style="margin-top:0.5rem"><a href="${s.neige.sourceUrl}" target="_blank" rel="noopener">Bulletin source →</a></div>` : ''}
+        </div>` : ''}
+
+        <div class="section"><h3>Enneigement historique (Météo-France)</h3>
+          ${n.statut === 'mesure' ? `
+            <div class="grid-2">
+              <div class="stat"><div class="stat-label">Jours skiables / hiver (moy.)</div><div class="stat-value">${n.joursSkiablesMoyen ?? '—'}</div></div>
+              <div class="stat"><div class="stat-label">Poste</div><div class="stat-value" style="font-size:0.85rem">${n.poste || '—'} (${n.posteAltitude} m)</div></div>
+              <div class="stat"><div class="stat-label">Période mesurée</div><div class="stat-value" style="font-size:0.85rem">${n.periode || '—'} (${n.hivers} hivers)</div></div>
+              <div class="stat"><div class="stat-label">Distance poste</div><div class="stat-value">${n.distanceKm != null ? n.distanceKm + ' km' : '—'}</div></div>
+            </div>
+            <div class="chart-wrap"><canvas id="${chartId}"></canvas></div>
+            <p style="font-size:0.72rem;color:var(--muted);margin-top:0.35rem">Illustration basée sur la moyenne de jours skiables (≥ 30 cm). Données historiques agrégées SkiRadar / Météo-France.</p>
+          ` : `<p style="font-size:0.88rem;color:var(--muted)">Aucune mesure de poste nivo proche disponible.</p>`}
+        </div>
+        ${f.jourAdulte != null || f.sixJoursAdulte != null ? `
+        <div class="section"><h3>Forfaits</h3>
+          <div class="grid-2">
+            ${f.jourAdulte != null ? `<div class="stat"><div class="stat-label">Journée adulte</div><div class="stat-value">${f.jourAdulte} €</div></div>` : ''}
+            ${f.sixJoursAdulte != null ? `<div class="stat"><div class="stat-label">6 jours adulte</div><div class="stat-value">${f.sixJoursAdulte} €</div></div>` : ''}
+          </div>
+          ${f.nomForfait ? `<div style="margin-top:0.45rem;font-size:0.82rem;color:var(--muted)">Forfait : ${f.nomForfait}${f.saison ? ' · ' + f.saison : ''}</div>` : ''}
+        </div>` : ''}
+        ${e.nom ? `
+        <div class="section"><h3>École de ski</h3>
+          <div class="stat"><div class="stat-label">${e.nom}</div>
+            <div class="stat-value" style="font-size:0.9rem">${e.moniteurs || '—'} moniteurs${e.moniteursAnglophones ? ` · ${e.moniteursAnglophones} anglophones` : ''}</div>
+          </div>
+        </div>` : ''}
+        ${act.total ? `
+        <div class="section"><h3>Activités hors-ski</h3>
+          <div style="font-size:0.88rem">${act.total} activités recensées (rayon ${act.rayonKm || 10} km)</div>
+          ${act.parType ? `<div style="margin-top:0.35rem;font-size:0.78rem;color:var(--muted)">${Object.entries(act.parType).map(([k,v]) => k + ': ' + v).join(' · ')}</div>` : ''}
+        </div>` : ''}
+        <div class="section" id="webcams-section">
+          <h3>Webcams en direct</h3>
+          <p style="font-size:0.82rem;color:var(--muted);margin-bottom:0.5rem">Chargement des caméras…</p>
+          <div class="links" id="webcam-links"></div>
+          <div class="links" style="margin-top:0.6rem">
+            <a href="https://skiradar.fr/stations/${s.id}/webcams" target="_blank" rel="noopener">Toutes les webcams SkiRadar →</a>
+            <a href="${s.url}" target="_blank" rel="noopener">Fiche SkiRadar →</a>
+            ${s.siteOfficiel ? `<a href="${s.siteOfficiel}" target="_blank" rel="noopener">Site officiel →</a>` : ''}
+          </div>
+        </div>
+        ${s.resume ? `<div class="section"><h3>Résumé</h3><p style="font-size:0.88rem;color:var(--muted)">${s.resume}</p></div>` : ''}
+      `;
+
+      document.getElementById('detail-panel').classList.add('open');
+
+      if (n.statut === 'mesure' && skiDays > 0) {
+        setTimeout(() => {
+          const canvas = document.getElementById(chartId);
+          if (!canvas) return;
+          if (snowChart) snowChart.destroy();
+          const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+          const months = ['Déc', 'Jan', 'Fév', 'Mar', 'Avr'];
+          const weights = [0.18, 0.28, 0.27, 0.18, 0.09];
+          const values = weights.map(w => Math.round(skiDays * w));
+          snowChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+              labels: months,
+              datasets: [{ label: 'Jours skiables estimés', data: values,
+                backgroundColor: isDark ? 'rgba(56, 189, 248, 0.7)' : 'rgba(14, 165, 233, 0.75)', borderRadius: 4 }]
+            },
+            options: {
+              responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '~' + ctx.raw + ' jours' } } },
+              scales: {
+                y: { beginAtZero: true, ticks: { color: isDark ? '#9ca3af' : '#6b7280' }, grid: { color: isDark ? '#2d3340' : '#e5e7eb' } },
+                x: { ticks: { color: isDark ? '#9ca3af' : '#6b7280' }, grid: { display: false } }
+              }
+            }
+          });
+        }, 50);
+      }
+      if (s.geo?.lat) map.setView([s.geo.lat, s.geo.lng], Math.max(map.getZoom(), 10), { animate: true });
+
+      // Fetch live weather
+      if (s.geo?.lat && s.geo?.lng) {
+        const wx = await fetchWeather(s.geo.lat, s.geo.lng);
+        const el = document.getElementById('meteo-section');
+        if (el && wx && wx.current) {
+          const c = wx.current;
+          const code = c.weather_code;
+          const daily = wx.daily || {};
+          let forecastHtml = '';
+          if (daily.time) {
+            forecastHtml = '<div style="margin-top:0.75rem;font-size:0.8rem"><strong>Prévisions 3 jours</strong><div class="grid-2" style="margin-top:0.4rem">';
+            for (let i = 0; i < Math.min(3, daily.time.length); i++) {
+              const d = new Date(daily.time[i]);
+              const day = d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+              const tmax = daily.temperature_2m_max?.[i];
+              const tmin = daily.temperature_2m_min?.[i];
+              const snow = daily.snowfall_sum?.[i];
+              const wcode = daily.weather_code?.[i];
+              forecastHtml += `<div class="stat" style="padding:0.5rem">
+                <div class="stat-label">${day} ${weatherIcon(wcode)}</div>
+                <div class="stat-value" style="font-size:0.9rem">${tmin != null ? Math.round(tmin) : '—'}° / ${tmax != null ? Math.round(tmax) : '—'}°</div>
+                ${snow > 0 ? `<div style="font-size:0.72rem;color:var(--muted)">Neige : ${snow} cm</div>` : ''}
+              </div>`;
+            }
+            forecastHtml += '</div></div>';
+          }
+          el.innerHTML = `
+            <h3>Météo & température (Open-Meteo)</h3>
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem">
+              <span style="font-size:2rem">${weatherIcon(code)}</span>
+              <div>
+                <div style="font-size:1.4rem;font-weight:700">${c.temperature_2m != null ? Math.round(c.temperature_2m) + ' °C' : '—'}</div>
+                <div style="font-size:0.85rem;color:var(--muted)">${WMO[code] || 'Code ' + code} · ressenti ${c.apparent_temperature != null ? Math.round(c.apparent_temperature) + '°' : '—'}</div>
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="stat">
+                <div class="stat-label">Humidité</div>
+                <div class="stat-value">${c.relative_humidity_2m != null ? c.relative_humidity_2m + ' %' : '—'}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Vent</div>
+                <div class="stat-value">${c.wind_speed_10m != null ? Math.round(c.wind_speed_10m) + ' km/h' : '—'}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Précipitations</div>
+                <div class="stat-value">${c.precipitation != null ? c.precipitation + ' mm' : '—'}</div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">Neige (sol)</div>
+                <div class="stat-value">${c.snow_depth != null ? (c.snow_depth * 100).toFixed(0) + ' cm' : (c.snowfall != null && c.snowfall > 0 ? c.snowfall + ' cm (chute)' : '—')}</div>
+              </div>
+            </div>
+            ${forecastHtml}
+            <p style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem">Source : Open-Meteo · altitude station ~${s._village || '?'} m (valeurs au niveau du village)</p>
+          `;
+        } else if (el) {
+          el.innerHTML = `<h3>Météo & température</h3><p style="font-size:0.85rem;color:var(--muted)">Météo temporairement indisponible.</p>`;
+        }
+      }
+
+      // Fetch webcams from station / SkiRadar page
+      const cams = await fetchWebcams(s.id);
+      const camBox = document.getElementById('webcam-links');
+      const camSection = document.getElementById('webcams-section');
+      if (camBox) {
+        if (cams.length > 0) {
+          if (camSection) {
+            const p = camSection.querySelector('p');
+            if (p) p.textContent = `${cams.length} webcam${cams.length > 1 ? 's' : ''} trouvée${cams.length > 1 ? 's' : ''} :`;
+          }
+          camBox.innerHTML = cams.map(c =>
+            `<a href="${c.url}" target="_blank" rel="noopener">📹 ${c.name}</a>`
+          ).join('');
+        } else {
+          if (camSection) {
+            const p = camSection.querySelector('p');
+            if (p) p.textContent = 'Liens opérateurs non récupérés automatiquement — utilise le lien SkiRadar ci-dessous.';
+          }
+        }
+      }
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-panel').classList.remove('open');
+      selectedId = null;
+      if (snowChart) { snowChart.destroy(); snowChart = null; }
+      renderList();
+    }
+
+    function exportCSV() {
+      const headers = ['id','name','commune','massif','domaine','lat','lng','altitude_village','altitude_sommet','km_pistes','remontees','jours_skiables_moyen','forfait_jour_adulte','webcams','url'];
+      const rows = filtered.map(s => [
+        s.id, `"${(s.name||'').replace(/"/g,'""')}"`, `"${(s.commune||'').replace(/"/g,'""')}"`, s.massif,
+        `"${(s.domaine||'').replace(/"/g,'""')}"`, s.geo?.lat??'', s.geo?.lng??'', s._village??'', s._sommet??'',
+        s.pistes?.km ?? s.pistes?.kmDomaineRelie ?? '', s.pistes?.remontees ?? '', s.neigeObservee?.joursSkiablesMoyen ?? '',
+        s.forfaits?.jourAdulte ?? '', s.webcams ?? '', s.url
+      ]);
+      const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = `stations-ski-france-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+
+    document.getElementById('view-toggle').addEventListener('click', e => {
+      const btn = e.target.closest('button'); if (!btn) return;
+      document.querySelectorAll('#view-toggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('list-panel').classList.toggle('visible', btn.dataset.view === 'list');
+    });
+    document.getElementById('massif-filter').addEventListener('change', applyFilters);
+    document.getElementById('alt-filter').addEventListener('change', applyFilters);
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('close-detail').addEventListener('click', closeDetail);
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    document.getElementById('export-csv').addEventListener('click', exportCSV);
+    document.getElementById('near-me').addEventListener('change', e => {
+      if (e.target.checked) {
+        if (!navigator.geolocation) { alert('Géolocalisation non supportée.'); e.target.checked = false; return; }
+        navigator.geolocation.getCurrentPosition(pos => {
+          if (userMarker) map.removeLayer(userMarker);
+          userMarker = L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+            radius: 8, color: '#ef4444', fillColor: '#ef4444', fillOpacity: 0.85
+          }).addTo(map).bindPopup('Vous êtes ici');
+          map.setView([pos.coords.latitude, pos.coords.longitude], 9);
+        }, () => { alert('Impossible d’obtenir ta position.'); e.target.checked = false; });
+      } else if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+    loadStations();
+  </script>
+</body>
+</html>

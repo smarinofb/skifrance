@@ -1,5 +1,7 @@
 # Ski France
 
-Application de cartographie des stations de ski françaises.
+Carte interactive des stations de ski françaises, avec recherche par massif et altitude, informations sur les domaines, la neige, la météo et les webcams.
 
-Le code source et les améliorations SEO seront ajoutés dans une branche de préparation avant publication.
+Le projet inclut un build SEO qui pré-génère des fiches HTML pour les stations suffisamment renseignées, des pages par massif, un sitemap et un fichier robots.txt.
+
+Voir [le guide d’installation](README-INSTALLATION-FR.md).

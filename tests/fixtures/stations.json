@@ -1,0 +1,15 @@
+{
+  "stations": [
+    {
+      "id": "fixture-station-001",
+      "name": "Station Exemple",
+      "commune": "Village Exemple",
+      "massif": "alpes-du-nord",
+      "geo": {"lat": 45.2, "lng": 6.2},
+      "altitudes": {"village": 1250, "sommet": 2800},
+      "pistes": {"km": 42, "remontees": 6, "vertes": 2, "bleues": 4, "rouges": 5, "noires": 2},
+      "neige": {"basCm": 30, "hautCm": 90, "statut": "ouvert", "releveLe": "2026-11-17T07:00:00Z"}
+    },
+    {"id":"fixture-station-sparse","name":"Fiche Trop Peu Renseignée","massif":"vosges","geo":{"lat":48.1,"lng":7.1}}
+  ]
+}

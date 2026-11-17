@@ -1,0 +1,15 @@
+name: Actualiser les fiches Ski France
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+jobs:
+  trigger-netlify-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Déclencher le build Netlify
+        env:
+          NETLIFY_BUILD_HOOK_URL: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
+        run: |
+          if [ -z "$NETLIFY_BUILD_HOOK_URL" ]; then echo "::warning::Configurez le secret NETLIFY_BUILD_HOOK_URL pour activer le déploiement hebdomadaire."; exit 0; fi
+          curl --fail --silent --show-error --request POST --data "{}" "$NETLIFY_BUILD_HOOK_URL"

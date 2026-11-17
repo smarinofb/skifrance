@@ -11,5 +11,5 @@ jobs:
         env:
           NETLIFY_BUILD_HOOK_URL: ${{ secrets.NETLIFY_BUILD_HOOK_URL }}
         run: |
-          if [ -z "$NETLIFY_BUILD_HOOK_URL" ]; then echo "Secret NETLIFY_BUILD_HOOK_URL manquant"; exit 1; fi
+          if [ -z "$NETLIFY_BUILD_HOOK_URL" ]; then echo "::warning::Configurez le secret NETLIFY_BUILD_HOOK_URL pour activer le déploiement hebdomadaire."; exit 0; fi
           curl --fail --silent --show-error --request POST --data "{}" "$NETLIFY_BUILD_HOOK_URL"

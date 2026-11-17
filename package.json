@@ -1,0 +1,13 @@
+{
+  "name": "skifrance",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Carte interactive des stations de ski françaises avec pages SEO pré-générées",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test:build": "node scripts/test-build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
